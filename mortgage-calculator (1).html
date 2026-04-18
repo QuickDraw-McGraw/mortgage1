@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mortgage Payment Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1814;
+    --paper: #f5f2eb;
+    --warm-mid: #e8e2d6;
+    --rule: #c8c0b0;
+    --accent: #2d5a3d;
+    --accent-light: #e8f0ea;
+    --danger: #8b2c1a;
+    --danger-light: #f5ebe8;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+  }
+
+  body {
+    display: grid;
+    grid-template-columns: 1fr min(680px, 100%) 1fr;
+    padding: 48px 16px 80px;
+  }
+
+  main { grid-column: 2; }
+
+  header { margin-bottom: 48px; }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #7a7060;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 28px 32px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7a7060;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--warm-mid);
+  }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .slider-row:last-child { margin-bottom: 0; }
+
+  .slider-label {
+    font-size: 12px;
+    color: #5a5448;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--rule);
+    outline: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--ink);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .slider-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    min-width: 90px;
+    text-align: right;
+    letter-spacing: -0.02em;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-bottom: 16px;
+  }
+
+  .result-cell {
+    background: #fff;
+    padding: 20px 22px;
+  }
+
+  .result-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7a7060;
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .result-value.over { color: var(--danger); }
+  .result-value.under { color: var(--accent); }
+
+  .breakdown {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--warm-mid);
+    font-size: 13px;
+  }
+
+  .breakdown-row:last-child {
+    border-bottom: none;
+    font-weight: 500;
+    background: var(--paper);
+  }
+
+  .breakdown-row span:last-child {
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .breakdown-row.total span:last-child.over { color: var(--danger); }
+  .breakdown-row.total span:last-child.under { color: var(--accent); }
+
+  .target-section {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+
+  .target-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7a7060;
+  }
+
+  .track {
+    height: 3px;
+    background: var(--warm-mid);
+    border-radius: 0;
+    overflow: visible;
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .track-fill {
+    height: 100%;
+    transition: width 0.4s cubic-bezier(.25,.8,.25,1), background 0.4s;
+    position: relative;
+  }
+
+  .track-marker {
+    position: absolute;
+    top: -5px;
+    width: 2px;
+    height: 13px;
+    background: var(--ink);
+    right: 0;
+  }
+
+  .track-note {
+    font-size: 11px;
+    color: #7a7060;
+    margin-top: 4px;
+  }
+
+  .advice-box {
+    background: var(--accent-light);
+    border: 1px solid #b8d4bf;
+    border-radius: 2px;
+    padding: 16px 20px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #2a4e36;
+    margin-bottom: 16px;
+  }
+
+  .advice-box.warn {
+    background: var(--danger-light);
+    border-color: #d4b8b4;
+    color: #6b2218;
+  }
+
+  .advice-box strong { font-weight: 500; }
+
+  .share-section {
+    background: var(--ink);
+    border-radius: 2px;
+    padding: 20px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .share-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #a09888;
+    flex-shrink: 0;
+  }
+
+  .share-url {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 2px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #d4cfc6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    letter-spacing: 0;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #f5f2eb;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 2px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .copy-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.5); }
+  .copy-btn.copied { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  @media (max-width: 480px) {
+    .card { padding: 20px 18px; }
+    .result-value { font-size: 22px; }
+    .slider-row { grid-template-columns: 1fr auto; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Monthly payment<br><em>optimizer</em></h1>
+    <p class="subtitle">Conventional 30-year fixed &mdash; adjust to explore</p>
+  </header>
+
+  <div class="result-grid">
+    <div class="result-cell">
+      <div class="result-label">Total monthly</div>
+      <div class="result-value" id="total-val">—</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-label">Loan amount</div>
+      <div class="result-value" id="loan-val">—</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-label">P&amp;I payment</div>
+      <div class="result-value" id="pi-val">—</div>
+    </div>
+    <div class="result-cell">
+      <div class="result-label">LTV ratio</div>
+      <div class="result-value" id="ltv-val">—</div>
+    </div>
+  </div>
+
+  <div class="target-section">
+    <div class="target-header">
+      <span>Progress to $3,500 target</span>
+      <span id="gap-label">—</span>
+    </div>
+    <div class="track">
+      <div class="track-fill" id="track-fill">
+        <div class="track-marker"></div>
+      </div>
+    </div>
+    <div class="track-note" id="track-note"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Loan inputs</div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">Purchase price</span>
+        <input type="range" id="price" min="500000" max="650000" step="1000" value="597109">
+      </div>
+      <span class="slider-value" id="price-out"></span>
+    </div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">Down payment</span>
+        <input type="range" id="dp" min="80000" max="220000" step="1000" value="119422">
+      </div>
+      <span class="slider-value" id="dp-out"></span>
+    </div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">Interest rate</span>
+        <input type="range" id="rate" min="4.0" max="7.5" step="0.125" value="5.375">
+      </div>
+      <span class="slider-value" id="rate-out"></span>
+    </div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">Property tax rate (incl. PID)</span>
+        <input type="range" id="taxrate" min="1.5" max="3.5" step="0.01" value="2.62">
+      </div>
+      <span class="slider-value" id="taxrate-out"></span>
+    </div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">Homeowners insurance ($/mo)</span>
+        <input type="range" id="ins" min="50" max="300" step="5" value="90">
+      </div>
+      <span class="slider-value" id="ins-out"></span>
+    </div>
+
+    <div class="slider-row">
+      <div>
+        <span class="slider-label">HOA ($/mo)</span>
+        <input type="range" id="hoa" min="0" max="300" step="5" value="50">
+      </div>
+      <span class="slider-value" id="hoa-out"></span>
+    </div>
+  </div>
+
+  <div class="breakdown">
+    <div class="breakdown-row"><span>Principal &amp; interest</span><span id="b-pi">—</span></div>
+    <div class="breakdown-row"><span>Property tax</span><span id="b-tax">—</span></div>
+    <div class="breakdown-row"><span>Homeowners insurance</span><span id="b-ins">—</span></div>
+    <div class="breakdown-row"><span>HOA</span><span id="b-hoa">—</span></div>
+    <div class="breakdown-row total"><span>Total</span><span id="b-total">—</span></div>
+  </div>
+
+  <div class="advice-box" id="advice-box"></div>
+
+  <div class="share-section">
+    <span class="share-label">Share</span>
+    <div class="share-url" id="share-url"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyLink()">Copy link</button>
+  </div>
+
+</main>
+
+<script>
+function pmt(r, n, pv) {
+  if (r === 0) return pv / n;
+  return pv * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+}
+
+function fmt(v) {
+  return '$' + Math.round(v).toLocaleString('en-US');
+}
+
+function updateShareUrl() {
+  const params = new URLSearchParams({
+    price: document.getElementById('price').value,
+    dp: document.getElementById('dp').value,
+    rate: document.getElementById('rate').value,
+    taxrate: document.getElementById('taxrate').value,
+    ins: document.getElementById('ins').value,
+    hoa: document.getElementById('hoa').value
+  });
+  const base = location.href.split('?')[0];
+  const url = base + '?' + params.toString();
+  document.getElementById('share-url').textContent = url;
+}
+
+function copyLink() {
+  const url = document.getElementById('share-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy link'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function calc() {
+  const price   = +document.getElementById('price').value;
+  const dp      = +document.getElementById('dp').value;
+  const annRate = +document.getElementById('rate').value;
+  const taxRate = +document.getElementById('taxrate').value;
+  const ins     = +document.getElementById('ins').value;
+  const hoa     = +document.getElementById('hoa').value;
+
+  const loan = price - dp;
+  const mRate = annRate / 100 / 12;
+  const pi  = pmt(mRate, 360, loan);
+  const tax = (price * taxRate / 100) / 12;
+  const total = pi + tax + ins + hoa;
+  const ltv = loan / price * 100;
+  const target = 3500;
+  const gap = total - target;
+
+  // Display values
+  document.getElementById('price-out').textContent = fmt(price);
+  document.getElementById('dp-out').textContent = fmt(dp);
+  document.getElementById('rate-out').textContent = annRate.toFixed(3) + '%';
+  document.getElementById('taxrate-out').textContent = taxRate.toFixed(2) + '%';
+  document.getElementById('ins-out').textContent = fmt(ins);
+  document.getElementById('hoa-out').textContent = fmt(hoa);
+
+  // Summary cards
+  const totalEl = document.getElementById('total-val');
+  totalEl.textContent = fmt(total);
+  totalEl.className = 'result-value ' + (total <= target ? 'under' : 'over');
+  document.getElementById('loan-val').textContent = fmt(loan);
+  document.getElementById('pi-val').textContent = fmt(pi);
+  document.getElementById('ltv-val').textContent = ltv.toFixed(1) + '%';
+
+  // Progress bar
+  const pct = Math.min(115, (total / target) * 100);
+  const fill = document.getElementById('track-fill');
+  fill.style.width = Math.min(100, pct) + '%';
+  fill.style.background = total <= target ? '#2d5a3d' : (pct > 108 ? '#8b2c1a' : '#b87333');
+
+  const gapLabel = document.getElementById('gap-label');
+  const trackNote = document.getElementById('track-note');
+  if (total <= target) {
+    gapLabel.textContent = '✓ under by ' + fmt(target - total) + '/mo';
+    gapLabel.style.color = '#2d5a3d';
+    trackNote.textContent = 'You are within the $3,500 target.';
+    trackNote.style.color = '#2d5a3d';
+  } else {
+    gapLabel.textContent = fmt(gap) + '/mo over';
+    gapLabel.style.color = '#8b2c1a';
+    trackNote.textContent = 'Need to reduce total monthly by ' + fmt(gap) + '.';
+    trackNote.style.color = '#8b2c1a';
+  }
+
+  // Breakdown
+  document.getElementById('b-pi').textContent  = fmt(pi);
+  document.getElementById('b-tax').textContent = fmt(tax) + ' (' + taxRate.toFixed(2) + '%)';
+  document.getElementById('b-ins').textContent = fmt(ins);
+  document.getElementById('b-hoa').textContent = fmt(hoa);
+  const btotal = document.getElementById('b-total');
+  btotal.textContent = fmt(total);
+  btotal.className = total <= target ? 'under' : 'over';
+
+  // Advice
+  const box = document.getElementById('advice-box');
+  if (total <= target) {
+    box.className = 'advice-box';
+    box.innerHTML = '<strong>You\'re under the $3,500 target.</strong> At these settings your payment clears the goal with ' + fmt(target - total) + '/mo to spare.';
+  } else {
+    const needPI = target - tax - ins - hoa;
+    let rateHint = null;
+    for (let r = 3.0; r <= annRate; r += 0.001) {
+      if (pmt(r/100/12, 360, loan) <= needPI) { rateHint = r; break; }
+    }
+    let dpHint = null;
+    for (let d = dp; d <= price * 0.55; d += 1000) {
+      if (pmt(mRate, 360, price - d) <= needPI) { dpHint = d; break; }
+    }
+    let lines = ['<strong>To hit $3,500/mo you need one (or a combination) of:</strong><br>'];
+    if (rateHint) lines.push('&rarr; Rate buydown to ~' + rateHint.toFixed(3) + '% (currently ' + annRate.toFixed(3) + '%)');
+    if (dpHint && dpHint > dp) lines.push('&rarr; Down payment of ~' + fmt(dpHint) + ' (extra ' + fmt(dpHint - dp) + ')');
+    lines.push('&rarr; Or negotiate a lower purchase price to reduce both the loan and the tax base.');
+    box.className = 'advice-box warn';
+    box.innerHTML = lines.join('<br>');
+  }
+
+  updateShareUrl();
+}
+
+// Load from URL params on page load
+const params = new URLSearchParams(location.search);
+const defaults = { price: 597109, dp: 119422, rate: 5.375, taxrate: 2.62, ins: 90, hoa: 50 };
+['price','dp','rate','taxrate','ins','hoa'].forEach(k => {
+  if (params.has(k)) document.getElementById(k).value = params.get(k);
+});
+
+['price','dp','rate','taxrate','ins','hoa'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calc);
+});
+
+calc();
+</script>
+</body>
+</html>
